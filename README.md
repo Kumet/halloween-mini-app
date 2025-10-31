@@ -191,10 +191,10 @@ CI（GitHub Actions）では、pytest と Playwright を実行し、Pull Request
 
 ```mermaid
 flowchart LR
-  FE[React (Vite Dev Server / Nginx)] -- REST --> API[FastAPI]
+  FE["React (Vite Dev Server / Nginx)"] -- REST --> API[FastAPI]
   API --> DB[(SQLite 履歴ストア)]
   API --> TEMPLATES[story_templates.py]
-  API --> METRICS[/metrics]
+  API --> METRICS[/metrics/]
   FE -- VITE_API_BASE --> API
 ```
 
