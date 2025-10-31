@@ -1,5 +1,7 @@
 # 🎃 Halloween Mini Apps — React + FastAPI 完全指示書（Codex用 / 省略なし）
 
+[![CI](https://github.com/Kumet/halloween-mini-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Kumet/halloween-mini-app/actions/workflows/ci.yml)
+
 > **目的**  
 > 半日（~4〜6h）で **React + FastAPI** のハロウィン風ミニアプリを構築・実行・（任意で）Docker化まで完了するための **完全な実行手順** と **コード一式**。  
 > このファイルは **そのままコピペ** で Codex（VS Code / Cursor / ChatGPT Code Interpreter 等）に渡して自動化できるよう最適化済みです。
