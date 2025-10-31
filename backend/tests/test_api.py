@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -9,8 +10,12 @@ if TEST_DB.exists():
     TEST_DB.unlink()
 os.environ["HISTORY_DB_PATH"] = str(TEST_DB)
 
-from app import history  # noqa: E402
-from app.main import app  # noqa: E402
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from app import history  # noqa: E402  pylint: disable=wrong-import-position
+from app.main import app  # noqa: E402  pylint: disable=wrong-import-position
 
 
 client = TestClient(app)
