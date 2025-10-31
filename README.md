@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Kumet/halloween-mini-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Kumet/halloween-mini-app/actions/workflows/ci.yml)
 
+> CI ではバックエンドの pytest とフロントエンドの Playwright を実行し、Pull Request ごとにエビデンス（test summary, Playwright HTML report）を GitHub Actions のジョブからダウンロードできます。
+
 ハロウィンをテーマにした React + FastAPI のミニアプリです。フロントエンドから “Trick or Treat” とストーリー生成 API を呼び出し、アニメーション付きの UI で結果を表示します。バックエンドはシード指定による再現性、レスポンス履歴の永続化、Prometheus 互換のメトリクス出力に対応しており、学習用・ポートフォリオ用に扱いやすい構成です。
 
 ## 主な機能
@@ -22,9 +24,35 @@
 
 ### 前提条件
 
-- Node.js 20.19 以上（`nvm install 20.19.0` などで準備）
-- Python 3.12 以上
+- Node.js 20.19 以上（例：`node -v` で確認、必要なら `nvm install 20.19.0`）
+- Python 3.12 以上（例：`python3 --version`）
 - （任意）Docker / Docker Compose
+
+> Windows の場合は WSL2 + Ubuntu を推奨。Mac/Linux は標準のシェルでそのまま実行できます。
+
+### プロジェクト構成（抜粋）
+
+```text
+halloween-mini-app/
+├── backend/
+│   ├── app/
+│   │   ├── main.py           # FastAPI エントリポイント
+│   │   ├── history.py        # SQLite 履歴ストア
+│   │   ├── schemas.py        # Pydantic スキーマ
+│   │   └── story_templates.py
+│   ├── tests/                # pytest
+│   └── requirements-dev.txt
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── components/
+│   │   ├── lib/api.ts
+│   │   └── i18n.ts
+│   ├── tests/                # Playwright
+│   └── package.json
+├── docker-compose.yml
+└── .github/workflows/ci.yml
+```
 
 ### 1. リポジトリを取得
 
@@ -83,13 +111,15 @@ CI（GitHub Actions）では、pytest と Playwright を実行し、Pull Request
 
 ## API リファレンス
 
-| メソッド | パス | 説明 |
-|----------|------|------|
-| `GET`    | `/api/health`          | ヘルスチェック |
-| `POST`   | `/api/trick-or-treat`  | Trick / Treat 判定（シード指定で再現） |
-| `POST`   | `/api/story`           | ハロウィンストーリー生成 |
-| `GET`    | `/api/history`         | 最新履歴（最大 50 件）を取得 |
-| `GET`    | `/metrics`             | Prometheus 形式のメトリクス |
+| メソッド | パス | 説明 | 正常系ステータス | 認証 |
+|----------|------|------|------------------|------|
+| `GET`    | `/api/health`          | ヘルスチェック | `200 OK` | 不要 |
+| `POST`   | `/api/trick-or-treat`  | Trick / Treat 判定（シード指定で再現） | `200 OK` | 不要 |
+| `POST`   | `/api/story`           | ハロウィンストーリー生成 | `200 OK` | 不要 |
+| `GET`    | `/api/history`         | 最新履歴（最大 50 件）を取得 | `200 OK` | 不要 |
+| `GET`    | `/metrics`             | Prometheus 形式のメトリクス | `200 OK` | 不要 |
+
+> 共通のエラーケース：リクエストボディのバリデーションに失敗した場合は `422 Unprocessable Entity`、サーバ内部エラー時は `500 Internal Server Error` が返ります。
 
 ### `/api/trick-or-treat`
 
@@ -178,4 +208,3 @@ flowchart LR
 ## ライセンス
 
 MIT
-
