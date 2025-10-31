@@ -10,8 +10,8 @@ test('トリックとストーリーの基本フロー', async ({ page }) => {
   await page.getByTestId('trick-button').click()
   await expect(page.getByTestId('trick-result')).toBeVisible()
 
-  await page.getByRole('combobox').first().selectOption('gag')
-  await page.getByRole('combobox').nth(1).selectOption('medium')
+  await page.getByTestId('mode-select').selectOption('gag')
+  await page.getByTestId('length-select').selectOption('medium')
   await page.getByPlaceholder('主人公名').fill('Tester')
   await page.getByTestId('story-button').click()
   await expect(page.getByTestId('story-result')).toBeVisible()
