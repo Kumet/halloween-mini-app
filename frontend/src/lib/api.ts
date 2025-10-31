@@ -19,3 +19,17 @@ export type StoryResponse = { title: string; story: string; mode: string };
 export function callStory(params: { mode: 'horror'|'gag'|'kids'; hero_name: string; length: 'short'|'medium'; seed?: number }) {
   return postJSON<StoryResponse>('/api/story', params);
 }
+
+export type HistoryEntry = {
+  id: number;
+  type: 'trick' | 'story';
+  summary: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+export async function fetchHistory(limit = 20): Promise<HistoryEntry[]> {
+  const res = await fetch(`${API_BASE}/api/history?limit=${limit}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<HistoryEntry[]>;
+}
