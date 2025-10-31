@@ -50,13 +50,22 @@ export default function App() {
               setSeed(value === '' ? '' : Number(value))
             }}
           />
-          <Button onClick={doTrick}>Trick or Treat!</Button>
+          <Button data-testid="trick-button" onClick={doTrick}>
+            Trick or Treat!
+          </Button>
         </div>
         {trick && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} className="mt-4 space-y-2">
+          <motion.div
+            data-testid="trick-result"
+            initial={{opacity:0}}
+            animate={{opacity:1}}
+            className="mt-4 space-y-2"
+          >
             <ResultBadge kind={trick.result} />
             <div className="text-zinc-300">{trick.message}</div>
-            <pre className="text-xs text-zinc-500 bg-zinc-950/50 rounded-xl p-3 overflow-auto">{JSON.stringify(trick.payload, null, 2)}</pre>
+            <pre className="text-xs text-zinc-500 bg-zinc-950/50 rounded-xl p-3 overflow-auto">
+              {JSON.stringify(trick.payload, null, 2)}
+            </pre>
           </motion.div>
         )}
       </Card>
@@ -91,10 +100,17 @@ export default function App() {
               setSeed(value === '' ? '' : Number(value))
             }}
           />
-          <Button onClick={doStory}>生成する</Button>
+          <Button data-testid="story-button" onClick={doStory}>
+            生成する
+          </Button>
         </div>
         {story && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} className="mt-4 space-y-2">
+          <motion.div
+            data-testid="story-result"
+            initial={{opacity:0}}
+            animate={{opacity:1}}
+            className="mt-4 space-y-2"
+          >
             <div className="text-lg font-semibold">{story.title}</div>
             <p className="whitespace-pre-wrap text-zinc-300">{story.story}</p>
           </motion.div>

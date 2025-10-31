@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r backend/requirements-dev.txt
+      - name: Run backend tests
+        run: |
+          source .venv/bin/activate
+          cd backend
+          pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend dependencies for e2e
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r backend/requirements-dev.txt
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          source ../.venv/bin/activate
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          echo $! > ../backend.pid
+      - name: Wait for backend
+        run: |
+          for _ in {1..10}; do
+            if curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not start" >&2
+          exit 1
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run frontend build
+        working-directory: frontend
+        env:
+          VITE_API_BASE: http://127.0.0.1:8000
+        run: npm run build
+      - name: Run Playwright tests
+        working-directory: frontend
+        env:
+          VITE_API_BASE: http://127.0.0.1:8000
+        run: npm run test:e2e
+      - name: Stop backend server
+        if: always()
+        run: |
+          kill $(cat backend.pid)
+          rm backend.pid
