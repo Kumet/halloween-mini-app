@@ -13,9 +13,11 @@
 - **バックエンド（FastAPI）**
   - `POST /api/trick-or-treat`：ランダム（または seed 指定）で `treat` / `trick` を返す
   - `POST /api/story`：モード（`horror` / `gag` / `kids`）と長さ（`short` / `medium`）で短編ストーリーを合成生成
+  - `GET  /api/history`：結果ログを SQLite に保存し最新 50 件まで取得
   - `GET  /api/health`：疎通確認
 - **フロントエンド（React + Vite + TS + Tailwind + Framer Motion）**
   - 上記 API を叩く UI。演出付きでレスポンス表示（バッジ・フェード表示）
+  - 日英切り替え（react-i18next）と履歴タイムライン表示
 - **オプション**
   - Dockerfile（frontend / backend）
   - docker-compose.yml（両者を同時起動）
@@ -584,6 +586,7 @@ cd halloween-mini/frontend
 echo "VITE_API_BASE=http://localhost:8000" > .env.local
 npm run dev
 # ブラウザで http://localhost:5173 を開く
+# 画面右上の Language セレクタで日本語 / 英語を切り替えられます
 ```
 
 ---
@@ -656,6 +659,35 @@ npm run dev
 }
 ```
 
+### 5.4 `GET /api/history`
+
+- **クエリパラメータ**
+
+```
+limit: 取得件数（任意 / デフォルト 20 / 最大 50）
+```
+
+- **レスポンス例**
+
+```json
+[
+  {
+    "id": 12,
+    "type": "trick",
+    "summary": "Tester は チョコバー をもらった！",
+    "payload": {"result": "treat", "item": "チョコバー", "name": "Tester", "seed": 42},
+    "created_at": "2025-10-31T09:10:25.123456+00:00"
+  },
+  {
+    "id": 11,
+    "type": "story",
+    "summary": "転びそうなドラキュラ",
+    "payload": {"mode": "gag", "length": "medium", "hero": "Tester", "seed": 7},
+    "created_at": "2025-10-31T09:09:58.987654+00:00"
+  }
+]
+```
+
 ---
 
 ## 6. curl 検証コマンド
@@ -673,6 +705,9 @@ curl -X POST http://localhost:8000/api/trick-or-treat \
 curl -X POST http://localhost:8000/api/story \
   -H 'Content-Type: application/json' \
   -d '{"mode":"gag","hero_name":"Masa","length":"medium","seed":7}'
+
+# history
+curl -X GET "http://localhost:8000/api/history?limit=5"
 ```
 
 ---
@@ -694,28 +729,15 @@ curl -X POST http://localhost:8000/api/story \
 
 - **SEED 共有 URL**：`?seed=42&mode=horror` でクエリから初期値を復元（`useEffect` + `URLSearchParams`）。
 - **BGM**：著作権フリーループ音源をモード別に再生（`<audio loop>`）。
-- **簡易履歴**：`deque(maxlen=50)` を使い `/api/history` で取得可能にする（インメモリ）。
-- **i18n**：`react-i18next` で ja/en 切り替え。
+- **API キー化**：Auth0 や Clerk を用いた SPA + API 認証の導入。
 
-**サンプル（インメモリ履歴）**
+**サンプル（履歴にフィールドを追加する場合）**
 
 ```python
-# app/main.py の先頭付近に追加
-from collections import deque
-from typing import Deque
-import time
-
-HISTORY: Deque[dict] = deque(maxlen=50)
-
-# trick_or_treat の return 直前に：
-# HISTORY.append({"type":"trick", "resp": {"result":result, "message":message}, "ts": time.time()})
-
-# story の return 直前に：
-# HISTORY.append({"type":"story", "resp": {"title": title}, "ts": time.time()})
-
-@app.get("/api/history")
-def history():
-    return list(HISTORY)
+# backend/app/history.py を編集して payload に新しいキーを保持できます。
+def add_entry(entry_type: str, summary: str, payload: dict[str, Any]) -> None:
+    payload["request_id"] = uuid.uuid4().hex  # 例: トレースIDを付与
+    ...
 ```
 
 ---
