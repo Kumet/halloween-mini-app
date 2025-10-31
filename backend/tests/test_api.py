@@ -1,9 +1,25 @@
+import os
+from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+TEST_DB = Path(__file__).parent / "history_test.db"
+if TEST_DB.exists():
+    TEST_DB.unlink()
+os.environ["HISTORY_DB_PATH"] = str(TEST_DB)
+
+from app import history  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _reset_history():
+    history.clear_history()
+    yield
 
 
 def test_health() -> None:
@@ -46,3 +62,21 @@ def test_metrics_endpoint() -> None:
     response = client.get("/metrics")
     assert response.status_code == 200
     assert "http_requests_total" in response.text
+
+
+def test_history_endpoint() -> None:
+    client.post("/api/trick-or-treat", json={"name": "Tester", "seed": 1})
+    client.post(
+        "/api/story",
+        json={"mode": "kids", "hero_name": "Tester", "length": "short", "seed": 2},
+    )
+    response = client.get("/api/history?limit=10")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 2
+    assert {entry["type"] for entry in data} >= {"trick", "story"}
+
+
+def teardown_module(module):  # noqa: ANN001
+    if TEST_DB.exists():
+        TEST_DB.unlink()

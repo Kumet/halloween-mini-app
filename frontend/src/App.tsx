@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Card from './components/Card';
 import Button from './components/Button';
 import ResultBadge from './components/ResultBadge';
-import { callTrick, callStory } from './lib/api';
-import type { StoryResponse, TrickResponse } from './lib/api';
+import HistoryTimeline from './components/HistoryTimeline';
+import { callTrick, callStory, fetchHistory } from './lib/api';
+import type { HistoryEntry, StoryResponse, TrickResponse } from './lib/api';
 
 export default function App() {
   const [name, setName] = useState('');
@@ -15,17 +16,31 @@ export default function App() {
   const [hero, setHero] = useState('あなた');
   const [length, setLength] = useState<'short'|'medium'>('short');
   const [story, setStory] = useState<StoryResponse | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const loadHistory = async () => {
+    const entries = await fetchHistory();
+    setHistory(entries);
+  };
+
+  useEffect(() => {
+    loadHistory().catch(() => {
+      // 初回読み込みで失敗しても UI 全体には影響しないため握りつぶす
+    });
+  }, []);
 
   const doTrick = async () => {
     const s = seed === '' ? undefined : Number(seed);
     const res = await callTrick(name || undefined, s);
     setTrick(res);
+    loadHistory().catch(() => {});
   };
 
   const doStory = async () => {
     const s = seed === '' ? undefined : Number(seed);
     const res = await callStory({ mode, hero_name: hero || 'あなた', length, seed: s });
     setStory(res);
+    loadHistory().catch(() => {});
   };
 
   return (
@@ -115,6 +130,11 @@ export default function App() {
             <p className="whitespace-pre-wrap text-zinc-300">{story.story}</p>
           </motion.div>
         )}
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-semibold mb-3">最近の履歴</h2>
+        <HistoryTimeline entries={history} />
       </Card>
 
       <footer className="text-center text-xs text-zinc-500 pt-4">Happy Halloween 👻</footer>

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from .history import add_entry, fetch_history
 from .schemas import StoryRequest, StoryResponse, TrickRequest, TrickResponse
 from .story_templates import generate_story
 
@@ -59,11 +60,33 @@ def trick_or_treat(payload: TrickRequest):
         candies = ["チョコバー", "キャラメル", "グミ", "キャンディ"]
         item = rng.choice(candies) if payload.seed is not None else random.choice(candies)
         message = f"{payload.name or 'You'} は {item} をもらった！"
-        return TrickResponse(result=result, message=message, payload={"item": item})
+        response = TrickResponse(result=result, message=message, payload={"item": item})
+        add_entry(
+            "trick",
+            message,
+            {
+                "result": result,
+                "item": item,
+                "name": payload.name,
+                "seed": payload.seed,
+            },
+        )
+        return response
     pranks = ["ドアノック音が止まらない…", "マントが裏返しになった", "足音だけが先に進む"]
     item = rng.choice(pranks) if payload.seed is not None else random.choice(pranks)
     message = f"{payload.name or 'You'} にいたずら：{item}"
-    return TrickResponse(result=result, message=message, payload={"prank": item})
+    response = TrickResponse(result=result, message=message, payload={"prank": item})
+    add_entry(
+        "trick",
+        message,
+        {
+            "result": result,
+            "prank": item,
+            "name": payload.name,
+            "seed": payload.seed,
+        },
+    )
+    return response
 
 
 @app.post("/api/story", response_model=StoryResponse)
@@ -72,7 +95,25 @@ def story(req: StoryRequest):
     外部APIなしで即時応答。seed指定で再現可能。
     """
     title, content = generate_story(req.mode, req.hero_name, req.length, req.seed)
-    return StoryResponse(title=title, story=content, mode=req.mode)
+    response = StoryResponse(title=title, story=content, mode=req.mode)
+    add_entry(
+        "story",
+        title,
+        {
+            "mode": req.mode,
+            "length": req.length,
+            "hero": req.hero_name,
+            "seed": req.seed,
+        },
+    )
+    return response
+
+
+@app.get("/api/history")
+def history(limit: int = 20):
+    """最新の履歴を取得する。"""
+    safe_limit = max(1, min(limit, 50))
+    return fetch_history(safe_limit)
 
 
 Instrumentator().instrument(app).expose(app, include_in_schema=False)

@@ -4,3 +4,4 @@ node_modules/
 dist/
 **/dist/
 __pycache__/
+backend/data/
