@@ -1,12 +1,20 @@
 import random
+import sys
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .schemas import StoryRequest, StoryResponse, TrickRequest, TrickResponse
 from .story_templates import generate_story
 
 app = FastAPI(title="Halloween Mini API", version="0.1.0")
+
+# Loguru を JSON 形式で出力するよう設定
+logger.remove()
+logger.add(sys.stdout, serialize=True, level="INFO")
 
 # CORS（開発用：必要に応じて調整）
 app.add_middleware(
@@ -16,6 +24,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_request_logging(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.bind(
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code,
+        duration_ms=round(duration_ms, 2),
+        client=request.client.host if request.client else None,
+    ).info("request.completed")
+    return response
 
 
 @app.get("/api/health")
@@ -50,3 +73,6 @@ def story(req: StoryRequest):
     """
     title, content = generate_story(req.mode, req.hero_name, req.length, req.seed)
     return StoryResponse(title=title, story=content, mode=req.mode)
+
+
+Instrumentator().instrument(app).expose(app, include_in_schema=False)

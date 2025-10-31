@@ -38,3 +38,11 @@ def test_story_endpoint() -> None:
     assert data["mode"] == "gag"
     assert data["title"]
     assert isinstance(data["story"], str) and len(data["story"]) > 0
+
+
+def test_metrics_endpoint() -> None:
+    # 事前に少なくとも1リクエストを発行してメトリクスが生成されるようにする
+    client.get("/api/health")
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "http_requests_total" in response.text
